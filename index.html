@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quant Command Console — Engineering Intelligence for Financial Markets</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800&family=Sora:wght@300;400;500;600&display=swap');
+    :root{
+      --bg:#f4f3ef;
+      --bg2:#ffffff;
+      --bg3:#edecea;
+      --border:rgba(0,0,0,0.08);
+      --border2:rgba(0,0,0,0.15);
+      --text:#0e0e0e;
+      --muted:#666560;
+      --dim:#999894;
+      --cyan:#00c8b0;
+      --cyan2:#00a896;
+      --magenta:#e0287a;
+      --yellow:#f0b429;
+      --blue:#1a6ef5;
+      --greenA:#1db85a;
+      --violetA:#7a5af5;
+      --mono:'Share Tech Mono', monospace;
+      --display:'Orbitron', sans-serif;
+      --body:'Sora', sans-serif;
+      --radius:6px;
+      --radius-lg:10px;
+      --soft:#f7f6f2;
+      --pink:rgba(224,40,122,0.06); --blue-soft:rgba(26,110,245,0.06);
+      --greenSoft:rgba(29,184,90,0.07); --amber:rgba(240,180,41,0.09); --violet:rgba(122,90,245,0.06);
+      --cyanSoft:rgba(0,200,176,0.06);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    html,body{height:100%; margin:0; font-family:var(--body); font-size:15px; color:var(--text); background:var(--bg); line-height:1.6;}
+    body::before{content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.012) 2px,rgba(0,0,0,0.012) 4px); pointer-events:none; z-index:0;}
+    .page{min-height:100vh; padding:0 0 64px; display:flex; flex-direction:column; position:relative; z-index:1;}
+
+    /* HEADER — dark terminal band */
+    header{
+      text-align:left; position:relative;
+      background:var(--text); color:var(--bg);
+      padding:52px max(48px, calc((100vw - 1200px)/2)) 24px;
+      overflow:hidden;
+      background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.03) 3px,rgba(255,255,255,0.03) 6px);
+    }
+    .topline{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+    .compass{font-family:var(--mono); font-size:12px; color:var(--cyan); line-height:1; animation:blink 1.2s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    h1{margin:0 0 6px; font-family:var(--display); font-size:clamp(26px,4vw,46px); font-weight:800; line-height:1.05; letter-spacing:-.01em; color:#fff;}
+    header h2{margin:0 0 20px; font-family:var(--display); font-size:clamp(13px,1.6vw,18px); font-weight:600; letter-spacing:.16em; color:var(--cyan);}
+    .badge{display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--bg); background:rgba(255,255,255,0.06); border:0.5px solid rgba(255,255,255,0.18); border-radius:4px; padding:6px 14px;}
+    .sub{margin-top:12px; font-family:var(--mono); font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:.08em;}
+
+    /* TAB NAV */
+    .tabbar{
+      position:sticky; top:0; z-index:50;
+      background:var(--text);
+      background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.03) 3px,rgba(255,255,255,0.03) 6px);
+      padding:0 max(48px, calc((100vw - 1200px)/2));
+      display:flex; gap:6px; overflow-x:auto;
+      border-bottom:2px solid rgba(255,255,255,0.08);
+      margin-bottom:40px;
+    }
+    .tabbar::-webkit-scrollbar{display:none}
+    .tab{
+      appearance:none; cursor:pointer;
+      background:rgba(255,255,255,0.06);
+      border:0.5px solid rgba(255,255,255,0.14); border-bottom:none;
+      border-radius:6px 6px 0 0;
+      font-family:var(--mono); font-size:11px; letter-spacing:.1em;
+      color:rgba(255,255,255,0.55);
+      padding:13px 18px 12px; margin-top:10px; margin-bottom:-2px;
+      white-space:nowrap; display:flex; align-items:baseline; gap:8px;
+      transition:color .18s, background .18s, border-color .18s;
+    }
+    .tab .num{color:rgba(255,255,255,0.3); font-size:10px;}
+    .tab:hover{color:#fff; background:rgba(255,255,255,0.12);}
+    .tab.active{background:var(--bg); color:var(--text); border-color:var(--bg); box-shadow:inset 0 3px 0 var(--cyan); padding-top:14px;}
+    .tab.active .num{color:var(--cyan2);}
+    .tab.active:hover{background:var(--bg); color:var(--text);}
+    .tab:focus-visible{outline:1px dashed var(--cyan); outline-offset:-4px;}
+
+    .tab-panel{display:none; animation:panelIn .25s ease;}
+    .tab-panel.active{display:block;}
+    @keyframes panelIn{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+    @media (prefers-reduced-motion:reduce){ .tab-panel{animation:none} .compass{animation:none} }
+
+    /* GENERIC SECTION */
+    .twin-section{max-width:1200px; width:100%; margin:0 auto; padding:0 48px;}
+    .twin-section + .twin-section{margin-top:44px;}
+    .twin-kicker{font-family:var(--mono); letter-spacing:.12em; color:var(--dim); font-size:10px; text-transform:uppercase; margin-bottom:12px;}
+    .twin-kicker::before{content:'// ';}
+    .twin-section h3{margin:0; font-family:var(--display); color:var(--text); font-size:clamp(18px,2.2vw,26px); letter-spacing:-.01em; font-weight:600; line-height:1.2;}
+    .twin-section .lead{max-width:720px; margin:12px 0 24px; line-height:1.8; font-size:14px; color:var(--muted);}
+    .twin-section .lead strong{color:var(--text); font-weight:600;}
+    .twin-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;}
+    .twin-grid.three{grid-template-columns:repeat(3,1fr);}
+    .twin-card{border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:20px 22px; background:var(--bg2); transition:border-color .18s, transform .18s;}
+    .twin-card:hover{border-color:var(--cyan); transform:translateY(-1px);}
+    .twin-card h4{margin:0 0 10px; font-family:var(--display); color:var(--text); font-size:14px; font-weight:600;}
+    .twin-card p{margin:0 0 10px; line-height:1.75; font-size:13px; color:var(--muted);}
+    .twin-card strong{color:var(--text); font-weight:600;}
+    .twin-card ul{margin:8px 0 0 18px; padding:0; font-size:13px; line-height:1.75; color:var(--muted);}
+    .quote{margin-top:18px; border:0.5px solid var(--border); border-left:3px solid var(--magenta); border-radius:var(--radius); padding:16px 20px; font-style:italic; font-size:14px; line-height:1.8; background:var(--bg2); color:var(--muted);}
+    .quote strong{color:var(--text); font-weight:600;}
+
+    /* PRINCIPLE BLOCKS (left-accent cards) */
+    .layers{display:grid; gap:10px; margin-top:16px;}
+    .layer{border-radius:var(--radius); padding:14px 16px; border:0.5px solid var(--border); border-left:3px solid var(--cyan); background:var(--soft); font-size:13px; line-height:1.7; color:var(--muted);}
+    .layer strong{color:var(--text); font-weight:600;}
+    .layer em{font-family:var(--mono); font-style:normal; font-size:10.5px; color:var(--cyan2); letter-spacing:.06em; text-transform:uppercase; display:block; margin-bottom:4px;}
+    .layer.l-magenta{border-left-color:var(--magenta); background:var(--pink);} .layer.l-magenta em{color:var(--magenta);}
+    .layer.l-blue{border-left-color:var(--blue); background:var(--blue-soft);} .layer.l-blue em{color:var(--blue);}
+    .layer.l-yellow{border-left-color:var(--yellow); background:var(--amber);} .layer.l-yellow em{color:#8a5a00;}
+    .layer.l-green{border-left-color:var(--greenA); background:var(--greenSoft);} .layer.l-green em{color:#0e7a3a;}
+    .layer.l-violet{border-left-color:var(--violetA); background:var(--violet);} .layer.l-violet em{color:var(--violetA);}
+
+    /* FLOW STRIP */
+    .flow{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px;}
+    .flow div{border:0.5px solid var(--border); border-radius:var(--radius); padding:12px; background:var(--soft); font-size:12px; line-height:1.6; color:var(--muted); transition:border-color .18s;}
+    .flow div:hover{border-color:var(--border2);}
+    .flow strong{color:var(--text); font-weight:600; display:inline-block; margin:4px 0 2px;}
+
+    /* ROADMAP — interactive career ladder */
+    .ladder{display:flex; flex-direction:column; margin-top:16px;}
+    .rung{
+      display:grid; grid-template-columns:56px 1fr; gap:16px; align-items:stretch;
+      cursor:pointer; border:0.5px solid var(--border); border-radius:var(--radius-lg);
+      background:var(--bg2); padding:16px 18px; transition:border-color .18s, transform .18s;
+    }
+    .rung + .rung-link{display:flex; justify-content:center; padding:4px 0;}
+    .rung-link::before{content:''; width:0.5px; height:20px; background:var(--border2);}
+    .rung:hover{border-color:var(--border2); transform:translateY(-1px);}
+    .rung .stage-num{font-family:var(--mono); font-size:11px; color:var(--dim); letter-spacing:.1em; padding-top:3px;}
+    .rung h5{margin:0; font-family:var(--display); font-size:14px; font-weight:600; color:var(--text);}
+    .rung .role{font-family:var(--mono); font-size:10px; color:var(--cyan2); letter-spacing:.08em; text-transform:uppercase; margin-top:2px;}
+    .rung .detail{display:none; margin-top:10px; font-size:12.5px; line-height:1.7; color:var(--muted); border-top:0.5px solid var(--border); padding-top:10px;}
+    .rung.open{border-left:3px solid var(--cyan);}
+    .rung.open .detail{display:block;}
+    .rung .hint{font-family:var(--mono); font-size:9.5px; color:var(--dim); letter-spacing:.08em; margin-top:6px;}
+
+    .stack{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+    .chip{font-family:var(--mono); font-size:10px; letter-spacing:.05em; color:var(--text); background:var(--soft); border:0.5px solid var(--border2); border-radius:4px; padding:4px 9px;}
+    .chip.k{color:#007a6b; background:var(--cyanSoft); border-color:rgba(0,200,176,0.3);}
+
+    /* EXAMINER capabilities */
+    .roster{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;}
+    .agent{border:0.5px solid var(--border); border-radius:var(--radius-lg); background:var(--bg2); padding:18px 20px; display:flex; flex-direction:column; gap:8px; transition:border-color .18s, transform .18s; border-left:3px solid var(--cyan);}
+    .agent:hover{border-color:var(--border2); transform:translateY(-1px);}
+    .agent-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
+    .agent-id{font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--dim);}
+    .agent-status{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; border-radius:4px; padding:3px 8px; color:#007a6b; background:rgba(0,200,176,0.1); border:0.5px solid rgba(0,200,176,0.3);}
+    .agent h5{margin:0; font-family:var(--display); font-size:14px; font-weight:600; color:var(--text);}
+    .agent p{margin:0; font-size:12.5px; line-height:1.7; color:var(--muted);}
+    .agent p strong{color:var(--text); font-weight:600;}
+
+    /* STEPS strip */
+    .steps{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px;}
+    .step{border:0.5px solid var(--border); border-radius:var(--radius); background:var(--soft); padding:12px 13px; font-size:12px; line-height:1.6; color:var(--muted);}
+    .step b{display:block; font-family:var(--mono); font-weight:400; font-size:9.5px; letter-spacing:.1em; margin-bottom:5px; color:var(--cyan2);}
+    .step strong{color:var(--text); font-weight:600;}
+    .step.warn b{color:var(--magenta);}
+
+    /* QUANT LAB */
+    .lab{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;}
+    .lab-card{border:0.5px solid var(--border); border-radius:var(--radius-lg); background:var(--bg2); padding:20px 22px;}
+    .lab-card h4{margin:0 0 4px; font-family:var(--display); font-size:14px; font-weight:600;}
+    .lab-card .formula{font-family:var(--mono); font-size:11px; color:var(--cyan2); letter-spacing:.04em; margin-bottom:14px;}
+    .ctl{margin-bottom:12px;}
+    .ctl label{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--muted); margin-bottom:5px; text-transform:uppercase;}
+    .ctl label output{color:var(--text);}
+    .ctl input[type=range]{width:100%; accent-color:var(--cyan2);}
+    .readout{margin-top:14px; border:0.5px solid var(--border); border-left:3px solid var(--cyan); border-radius:var(--radius); background:var(--soft); padding:12px 14px;}
+    .readout .big{font-family:var(--mono); font-size:22px; color:var(--text);}
+    .readout .big.neg{color:var(--magenta);}
+    .readout .big.pos{color:#0e7a3a;}
+    .readout .note{font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.6;}
+    .bars{display:flex; gap:3px; align-items:flex-end; height:64px; margin-top:12px;}
+    .bars span{flex:1; background:var(--cyan); opacity:.7; border-radius:2px 2px 0 0; min-height:2px; transition:height .2s;}
+    .bars span.loss{background:var(--magenta);}
+
+    /* RULES TABLE */
+    .allocation{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:14px;}
+    .allocation th{background:var(--text); color:#fff; font-family:var(--mono); font-weight:400; padding:8px 10px; letter-spacing:.1em; font-size:10px; text-align:left;}
+    .allocation td{border-bottom:0.5px solid var(--border); padding:8px 10px; color:var(--muted);}
+    .allocation td:first-child{font-family:var(--mono); font-size:11px; color:var(--text);}
+    .allocation tr:last-child td{border-bottom:none;}
+
+    /* MANIFESTO */
+    .manifesto{max-width:820px;}
+    .manifesto .line{border:0.5px solid var(--border); border-left:3px solid var(--cyan); border-radius:var(--radius); background:var(--bg2); padding:16px 20px; margin-top:10px; font-size:15px; line-height:1.8; color:var(--muted);}
+    .manifesto .line strong{color:var(--text); font-weight:600;}
+    .manifesto .line.alt{border-left-color:var(--magenta);}
+    .creed{margin-top:22px; background:var(--text); color:rgba(255,255,255,0.75); border-radius:var(--radius-lg); padding:26px 28px; background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.03) 3px,rgba(255,255,255,0.03) 6px);}
+    .creed div{font-family:var(--mono); font-size:13px; letter-spacing:.06em; line-height:2.1;}
+    .creed div::before{content:'> '; color:var(--cyan);}
+
+    .footnote{max-width:1200px; margin:56px auto 0; padding:0 48px; font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:var(--dim);}
+
+    @media (max-width:900px){
+      .twin-grid, .twin-grid.three, .roster, .lab{grid-template-columns:1fr;}
+      .flow, .steps{grid-template-columns:1fr 1fr;}
+      .twin-section{padding:0 22px;}
+      header{padding-left:22px; padding-right:22px;}
+      .tabbar{padding-left:22px; padding-right:22px;}
+      .footnote{padding:0 22px;}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="topline"><div class="compass">✦</div></div>
+  <h1>ENGINEERING INTELLIGENCE<br/>FOR FINANCIAL MARKETS</h1>
+  <h2>QUANT COMMAND CONSOLE</h2>
+  <div class="badge">PROCESS OVER PREDICTION · EVIDENCE OVER INTUITION</div>
+  <div class="sub">MISSION: BUILD THE SYSTEMS THAT TRADERS, FUNDS AND EXCHANGES RELY UPON</div>
+</header>
+
+<nav class="tabbar" role="tablist" aria-label="Sections">
+  <button class="tab active" role="tab" aria-selected="true" data-tab="philosophy"><span class="num">01</span>PHILOSOPHY</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="roadmap"><span class="num">02</span>CAREER ROADMAP</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="examiner"><span class="num">03</span>AI TRADING EXAMINER</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="lab"><span class="num">04</span>QUANT LAB</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="casestudy"><span class="num">05</span>CASE STUDY · UMAR ASHRAF</button>
+  <button class="tab" role="tab" aria-selected="false" data-tab="manifesto"><span class="num">06</span>MANIFESTO</button>
+</nav>
+
+<!-- ============ 01 PHILOSOPHY ============ -->
+<section class="tab-panel active" id="panel-philosophy" role="tabpanel">
+  <section class="twin-section">
+    <div class="twin-kicker">Lessons from trading psychology, reframed as engineering</div>
+    <h3>PROCESS OVER PREDICTION</h3>
+    <p class="lead">Professional traders focus less on <strong>predicting the market correctly</strong> and more on <strong>limiting the downside when they are wrong</strong>. Protect capital first — profits are a consequence of disciplined risk management, not its goal.</p>
+
+    <div class="layers">
+      <div class="layer">
+        <em>Principle 01 · Risk management over prediction</em>
+        <strong>Protect capital first.</strong> The edge is not in calling the market — it is in ensuring that being wrong is survivable and being right compounds.
+      </div>
+      <div class="layer l-magenta">
+        <em>Principle 02 · Overtrading creates noise</em>
+        Taking excessive numbers of trades makes it impossible to learn. <strong>Wait for high-quality opportunities</strong>, collect clean performance data, and measure outcomes statistically.
+      </div>
+      <div class="layer l-blue">
+        <em>Principle 03 · Trading as scientific experimentation</em>
+        Treat every strategy as an experiment. <strong>Change one variable at a time</strong>, measure the result, and never modify entries, exits, indicators and position sizing simultaneously.
+      </div>
+      <div class="layer l-yellow">
+        <em>Principle 04 · Rules for not trading</em>
+        Knowing when <strong>not</strong> to trade is an edge. Markets spend long stretches in environments where no statistical advantage exists — sitting out is a position.
+      </div>
+      <div class="layer l-green">
+        <em>Principle 05 · Information hygiene</em>
+        Outside noise contaminates the experiment. <strong>Live trading rooms, social feeds and borrowed macro bias</strong> inject variables you never chose to test. A system's signals must come from the system — not from the loudest voice in the room.
+      </div>
+      <div class="layer l-violet">
+        <em>Principle 06 · Accept the loss, walk away</em>
+        A stopped-out trade is a <strong>completed experiment, not an insult</strong>. The inability to accept a loss and stop for the day is what turns one bad trade into a blown week.
+      </div>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">Critical perspective — keep the skepticism switched on</div>
+    <h3>WHAT THE GURUS DON'T TELL YOU</h3>
+    <div class="twin-grid three">
+      <div class="twin-card">
+        <h4>Survivorship Bias</h4>
+        <p>Successful traders may possess exceptional skill — but their results alone do not prove their methods are <strong>universally transferable</strong>. You never see the accounts that blew up following the same playbook.</p>
+      </div>
+      <div class="twin-card">
+        <h4>Psychology ≠ Edge</h4>
+        <p>Discipline matters. But <strong>discipline without positive expectancy still loses money</strong> — just more slowly and more consistently.</p>
+        <p style="font-family:var(--mono); font-size:11px; color:var(--cyan2); letter-spacing:.03em;">E = (Win% × AvgWin) − (Loss% × AvgLoss)</p>
+      </div>
+      <div class="twin-card">
+        <h4>Trading Businesses</h4>
+        <p>Educational content can be genuinely valuable while still living inside business models that <strong>profit when you trade more</strong> — evaluations, resets, subscriptions. Separate the educational value from the commercial incentive.</p>
+        <p><strong>Prop capital carries its own distortion:</strong> payout thresholds and evaluation deadlines pressure traders into oversizing and forcing trades — the exact behaviours that destroy expectancy. Traders who pass evaluations often struggle once funded, because the incentive structure changed, not the market.</p>
+      </div>
+    </div>
+
+    <div class="quote">
+      Rather than asking <strong>"Should I buy now?"</strong> — ask <strong>"Can I engineer a system that estimates expected value under uncertainty?"</strong> That single shift converts trading into engineering.
+    </div>
+  </section>
+</section>
+
+<!-- ============ 02 ROADMAP ============ -->
+<section class="tab-panel" id="panel-roadmap" role="tabpanel">
+  <section class="twin-section">
+    <div class="twin-kicker">Career progression — click a stage to expand</div>
+    <h3>THE FINANCIAL ENGINEERING TRAJECTORY</h3>
+    <p class="lead">The ultimate objective is not to become a discretionary trader. It is to become <strong>an engineer capable of building financial systems</strong>. Each stage compounds the one before it.</p>
+
+    <div class="ladder" id="ladder">
+      <div class="rung open" tabindex="0">
+        <div class="stage-num">S1</div>
+        <div>
+          <h5>SOFTWARE ENGINEER</h5>
+          <div class="role">Foundation · build things that work</div>
+          <div class="detail">Master the craft of building reliable systems: algorithms, data structures, operating systems, networks. Fluency in <strong>C++ and Python</strong>, comfort with distributed systems. Everything above this layer rests on it.</div>
+          <div class="hint">CLICK TO EXPAND / COLLAPSE</div>
+        </div>
+      </div>
+      <div class="rung-link"></div>
+      <div class="rung" tabindex="0">
+        <div class="stage-num">S2</div>
+        <div>
+          <h5>QUANTITATIVE DEVELOPER</h5>
+          <div class="role">Speed + correctness in market systems</div>
+          <div class="detail">Apply engineering skill to market infrastructure: pricing libraries, backtesting engines, data pipelines, execution systems. Learn <strong>market microstructure</strong> from the inside — how orders actually move.</div>
+          <div class="hint">CLICK TO EXPAND / COLLAPSE</div>
+        </div>
+      </div>
+      <div class="rung-link"></div>
+      <div class="rung" tabindex="0">
+        <div class="stage-num">S3</div>
+        <div>
+          <h5>FINANCIAL ENGINEER</h5>
+          <div class="role">Model the instruments themselves</div>
+          <div class="detail">Add the finance layer: <strong>portfolio theory, derivatives, fixed income, risk management</strong>. Design and price instruments; understand how risk is transferred, hedged and warehoused.</div>
+          <div class="hint">CLICK TO EXPAND / COLLAPSE</div>
+        </div>
+      </div>
+      <div class="rung-link"></div>
+      <div class="rung" tabindex="0">
+        <div class="stage-num">S4</div>
+        <div>
+          <h5>QUANTITATIVE RESEARCHER</h5>
+          <div class="role">Generate and validate hypotheses</div>
+          <div class="detail">Full command of <strong>probability, statistics, stochastic processes and optimization</strong>. Form hypotheses about markets, test them with rigor, and kill ideas that don't survive out-of-sample.</div>
+          <div class="hint">CLICK TO EXPAND / COLLAPSE</div>
+        </div>
+      </div>
+      <div class="rung-link"></div>
+      <div class="rung" tabindex="0">
+        <div class="stage-num">S5</div>
+        <div>
+          <h5>AI FINANCIAL ENGINEER</h5>
+          <div class="role">The frontier — intelligent systems</div>
+          <div class="detail">Combine everything with modern AI: <strong>LLMs, agentic AI, reinforcement learning, Bayesian inference, graph neural networks, time-series transformers, market simulation, agent-based modelling, GPU computing, distributed inference</strong>.</div>
+          <div class="hint">CLICK TO EXPAND / COLLAPSE</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">Knowledge stack — four pillars plus the AI frontier</div>
+    <h3>WHAT TO ACTUALLY LEARN</h3>
+    <div class="twin-grid">
+      <div class="twin-card">
+        <h4>Mathematics</h4>
+        <div class="stack"><span class="chip">Probability</span><span class="chip">Statistics</span><span class="chip">Linear Algebra</span><span class="chip">Calculus</span><span class="chip">Optimization</span><span class="chip">Stochastic Processes</span></div>
+      </div>
+      <div class="twin-card">
+        <h4>Computer Science</h4>
+        <div class="stack"><span class="chip">Algorithms</span><span class="chip">Data Structures</span><span class="chip">Operating Systems</span><span class="chip">Networks</span><span class="chip">C++</span><span class="chip">Python</span><span class="chip">Distributed Systems</span></div>
+      </div>
+      <div class="twin-card">
+        <h4>Finance</h4>
+        <div class="stack"><span class="chip">Portfolio Theory</span><span class="chip">Derivatives</span><span class="chip">Market Microstructure</span><span class="chip">Fixed Income</span><span class="chip">Risk Management</span></div>
+      </div>
+      <div class="twin-card">
+        <h4>Trading Psychology</h4>
+        <div class="stack"><span class="chip">Risk</span><span class="chip">Position Sizing</span><span class="chip">Journaling</span><span class="chip">Process Discipline</span></div>
+        <p style="margin-top:12px;">Psychology should <strong>support</strong> the engineering, never dominate it.</p>
+      </div>
+    </div>
+    <div class="twin-grid" style="grid-template-columns:1fr; margin-top:12px;">
+      <div class="twin-card">
+        <h4>AI Financial Engineering — the fifth pillar</h4>
+        <div class="stack">
+          <span class="chip k">Large Language Models</span><span class="chip k">Agentic AI</span><span class="chip k">Reinforcement Learning</span><span class="chip k">Bayesian Inference</span><span class="chip k">Graph Neural Networks</span><span class="chip k">Time-Series Transformers</span><span class="chip k">Market Simulation</span><span class="chip k">Agent-Based Modelling</span><span class="chip k">GPU Computing</span><span class="chip k">Distributed Inference</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ============ 03 AI TRADING EXAMINER ============ -->
+<section class="tab-panel" id="panel-examiner" role="tabpanel">
+  <section class="twin-section">
+    <div class="twin-kicker">Product concept — evaluate process, not outcome</div>
+    <h3>THE AI TRADING EXAMINER</h3>
+    <p class="lead">Everyone is building AI trading bots that try to <strong>predict markets</strong>. Build the opposite: an <strong>AI Examiner</strong> whose mission is to <strong>evaluate trader quality</strong>. It never places a trade — it grades the human (or the bot) that does. This mirrors the Chief Examiner educational philosophy: evaluate process rather than outcome.</p>
+
+    <div class="roster">
+      <div class="agent">
+        <div class="agent-top"><span class="agent-id">CAP-01 · OBSERVATION</span><span class="agent-status">CORE</span></div>
+        <h5>OBSERVE &amp; DETECT</h5>
+        <p><strong>Observes every trade</strong> as it happens and <strong>detects rule violations</strong> against the trader's own written plan, classifying each flag under the six-code violation taxonomy below.</p>
+      </div>
+      <div class="agent">
+        <div class="agent-top"><span class="agent-id">CAP-02 · GRADING</span><span class="agent-status">CORE</span></div>
+        <h5>GRADE EXECUTION QUALITY</h5>
+        <p>Marks each trade like an exam script: was the process followed, regardless of whether the trade won or lost? <strong>A losing trade executed perfectly scores higher than a lucky win.</strong></p>
+      </div>
+      <div class="agent">
+        <div class="agent-top"><span class="agent-id">CAP-03 · STATISTICS</span><span class="agent-status">CORE</span></div>
+        <h5>MEASURE CONSISTENCY &amp; EXPECTANCY</h5>
+        <p>Tracks <strong>consistency</strong> across the sample and calculates <strong>expectancy</strong>, profit factor and drawdown — the numbers that decide whether an edge actually exists.</p>
+      </div>
+      <div class="agent">
+        <div class="agent-top"><span class="agent-id">CAP-04 · COACHING</span><span class="agent-status">CORE</span></div>
+        <h5>ANALYSE, EXPLAIN, COACH</h5>
+        <p><strong>Analyses psychology</strong> from behaviour patterns, <strong>explains every judgement</strong> it makes, and produces <strong>coaching reports</strong> that tell the trader exactly what to fix next. It also grades against the trader's own baseline — not against other traders — because comparison to louder, more technical peers is itself a documented source of tilt.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">The violation taxonomy — six failure modes, field-verified against real unprofitable traders</div>
+    <h3>WHAT THE EXAMINER IS TRAINED TO CATCH</h3>
+    <p class="lead">When an experienced trader reviews struggling traders one by one, the same handful of failure modes appear again and again. The Examiner encodes them as a <strong>detectable, gradeable taxonomy</strong> — every flagged trade maps to one of these six codes.</p>
+    <div class="layers">
+      <div class="layer">
+        <em>V-01 · Strategy switching</em>
+        <strong>Detection:</strong> setup fingerprint changes before the 100-trade sample completes. Traders abandon systems after short losing streaks — before the data could ever prove or disprove the edge. The Examiner flags any rule change made without statistical justification.
+      </div>
+      <div class="layer l-magenta">
+        <em>V-02 · Overtrading &amp; FOMO</em>
+        <strong>Detection:</strong> trade count exceeds the daily cap, or entries cluster immediately after missed moves. Chasing generates noise, burns commissions, and makes every downstream metric unreadable.
+      </div>
+      <div class="layer l-blue">
+        <em>V-03 · Asymmetric exits — the disposition effect</em>
+        <strong>Detection:</strong> average holding time on winners is shorter than on losers; realised R on winners consistently undershoots the planned target while losers exceed the planned stop. Cutting winners early and letting losers run silently rewrites the expectancy equation against you.
+      </div>
+      <div class="layer l-yellow">
+        <em>V-04 · Revenge trading &amp; over-leverage</em>
+        <strong>Detection:</strong> position size spikes immediately after a loss, or re-entries fire at the same key level within minutes of a stop-out. The Examiner treats any size increase following a losing trade as a violation until the journal justifies it.
+      </div>
+      <div class="layer l-green">
+        <em>V-05 · Incentive-pressured trading</em>
+        <strong>Detection:</strong> behaviour shifts near evaluation deadlines, payout thresholds, or after switching from personal to funded capital — rising trade frequency, rising size, falling setup quality. The market didn't change; the incentive did.
+      </div>
+      <div class="layer l-violet">
+        <em>V-06 · Misdiagnosis</em>
+        <strong>Detection:</strong> multiple variables changed at once — bias, strategy, instrument, session — so no conclusion is attributable. When a trader can't tell whether the bias, the strategy or the market choice is broken, the Examiner isolates one variable and freezes the rest.
+      </div>
+    </div>
+    <div class="quote">
+      A human reviewer can grade fifteen traders. An Examiner that encodes the same taxonomy can grade <strong>every trade, every trader, every day — and explain each flag.</strong>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">Workflow — the examination loop</div>
+    <h3>HOW A TRADING WEEK GETS MARKED</h3>
+    <div class="steps">
+      <div class="step"><b>STEP 1 · TRADER</b><strong>Trade the plan</strong> under the written rules.</div>
+      <div class="step"><b>STEP 2 · EXAMINER</b><strong>Ingest &amp; observe</strong> every fill, journal entry, and timestamp.</div>
+      <div class="step warn"><b>STEP 3 · EXAMINER</b><strong>Flag violations</strong> and grade execution quality per trade.</div>
+      <div class="step"><b>STEP 4 · EXAMINER</b><strong>Compute the numbers</strong> — expectancy, profit factor, R-multiples.</div>
+      <div class="step"><b>STEP 5 · EXAMINER</b><strong>Read the psychology</strong> — hesitation, tilt, oversizing patterns.</div>
+      <div class="step"><b>STEP 6 · EXAMINER</b><strong>File the report</strong> with explained, evidence-backed findings.</div>
+      <div class="step"><b>STEP 7 · TRADER</b><strong>Review &amp; adjust</strong> one variable — never five at once.</div>
+      <div class="step"><b>STEP 8 · LOOP</b><strong>Repeat</strong> until the 100-trade sample is complete.</div>
+    </div>
+
+    <div class="quote">
+      The product promise: hand over a week of trading and receive an examiner-grade report that tells you <strong>exactly what your process is worth — and what to improve next.</strong>
+    </div>
+  </section>
+</section>
+
+<!-- ============ 04 QUANT LAB ============ -->
+<section class="tab-panel" id="panel-lab" role="tabpanel">
+  <section class="twin-section">
+    <div class="twin-kicker">Quantitative thinking — interactive</div>
+    <h3>THE NUMBERS THAT DECIDE EVERYTHING</h3>
+    <p class="lead">Discipline without positive expectancy still loses money. Move the sliders and watch the mathematics of your system change in real time.</p>
+
+    <div class="lab">
+      <div class="lab-card">
+        <h4>Expectancy Calculator</h4>
+        <div class="formula">E = (WIN% × AVG WIN) − (LOSS% × AVG LOSS)</div>
+        <div class="ctl">
+          <label>Win rate <output id="wrOut">45%</output></label>
+          <input type="range" id="wr" min="10" max="90" value="45" />
+        </div>
+        <div class="ctl">
+          <label>Average win (R) <output id="awOut">2.0R</output></label>
+          <input type="range" id="aw" min="5" max="60" value="20" />
+        </div>
+        <div class="ctl">
+          <label>Average loss (R) <output id="alOut">1.0R</output></label>
+          <input type="range" id="al" min="5" max="40" value="10" />
+        </div>
+        <div class="readout">
+          <div class="big" id="expBig">+0.35R</div>
+          <div class="note" id="expNote"></div>
+        </div>
+        <p style="margin:14px 0 0; font-size:12px; line-height:1.7; color:var(--muted);"><strong style="color:var(--text);">Why behaviour is math:</strong> cutting winners early drags <span style="font-family:var(--mono); font-size:11px;">AVG WIN</span> down; letting losers run pushes <span style="font-family:var(--mono); font-size:11px;">AVG LOSS</span> up. Drag those two sliders toward each other and watch how quickly the disposition effect kills an otherwise valid edge — no market move required.</p>
+      </div>
+
+      <div class="lab-card">
+        <h4>Risk of Ruin Intuition</h4>
+        <div class="formula">FIXED % RISK · 100-TRADE SIMULATED EQUITY PATH</div>
+        <div class="ctl">
+          <label>Risk per trade <output id="rrOut">1.0%</output></label>
+          <input type="range" id="rr" min="1" max="100" value="10" />
+        </div>
+        <div class="bars" id="bars" aria-hidden="true"></div>
+        <div class="readout">
+          <div class="big" id="ruinBig">—</div>
+          <div class="note" id="ruinNote">Final equity of one simulated 100-trade sequence using your expectancy settings on the left. Re-drag any slider to re-run the experiment — notice how the <strong>same edge</strong> survives at 1% risk and dies at 10%.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">Operating constraints — trading as an engineering experiment</div>
+    <h3>QUANTITATIVE OPERATING RULES</h3>
+    <div class="twin-grid">
+      <div class="twin-card">
+        <h4>The Constraints</h4>
+        <ul>
+          <li><strong>Maximum two trades per day</strong> — scarcity forces selectivity;</li>
+          <li><strong>Fixed percentage risk per trade</strong> — position size is a formula, not a feeling;</li>
+          <li><strong>Minimum 100-trade sample</strong> before modifying the strategy;</li>
+          <li><strong>Structured trading journal</strong> — every trade is a logged experiment;</li>
+          <li><strong>One variable changed at a time</strong> — otherwise the data means nothing;</li>
+          <li><strong>Daily circuit breaker</strong> — hit the fixed daily loss limit, accept it, shut the platform. No exceptions, no "one more trade";</li>
+          <li><strong>Defined session window</strong> — trade only pre-declared hours; at the open, wait for confirmation instead of chasing the first candle;</li>
+          <li><strong>Signal isolation</strong> — no live rooms, feeds, or borrowed macro bias during the session. Inputs are part of the experiment design.</li>
+        </ul>
+      </div>
+      <div class="twin-card">
+        <h4>Weekly Metrics Review</h4>
+        <table class="allocation">
+          <tr><th>METRIC</th><th>WHAT IT ANSWERS</th></tr>
+          <tr><td>EXPECTANCY</td><td>Does an edge exist at all?</td></tr>
+          <tr><td>PROFIT FACTOR</td><td>How efficiently does the edge convert?</td></tr>
+          <tr><td>SHARPE RATIO</td><td>Is the return worth the volatility?</td></tr>
+          <tr><td>MAX DRAWDOWN</td><td>Can the system — and you — survive the worst run?</td></tr>
+          <tr><td>AVG R MULTIPLE</td><td>Is risk being paid fairly per unit taken?</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="quote">
+      Treat trading like an engineering experiment: <strong>define the variables, fix the constraints, collect the sample, then — and only then — draw conclusions.</strong>
+    </div>
+  </section>
+</section>
+
+<!-- ============ 05 CASE STUDY · UMAR ASHRAF ============ -->
+<section class="tab-panel" id="panel-casestudy" role="tabpanel">
+  <section class="twin-section">
+    <div class="twin-kicker">Subject dossier — treat a role model like a dataset</div>
+    <h3>CASE STUDY: UMAR ASHRAF</h3>
+    <p class="lead">Day trader of 13+ years, founder and CEO of <strong>TradeZella</strong> (a trade journaling &amp; analytics platform), and the reviewer in the "$30M trader vs 15 unprofitable traders" session that shaped this site's violation taxonomy. He claims <strong>$30M+ in trading profits</strong>, with a reported best year of $7.5M in 2021. The engineering question is never "is he impressive?" — it is <strong>"what here is verifiable, what is transferable, and what is noise?"</strong></p>
+
+    <div class="twin-grid">
+      <div class="twin-card">
+        <h4>The Trader Profile</h4>
+        <ul>
+          <li><strong>Style:</strong> day trader / scalper reading order flow — how buyers and sellers behave at key levels — with VWAP as his only indicator;</li>
+          <li><strong>Instruments:</strong> options, futures and stocks around the S&amp;P 500 and liquid large-caps (Tesla, Nvidia, Amazon);</li>
+          <li><strong>Session:</strong> mostly the first hour or two after the open;</li>
+          <li><strong>Selectivity:</strong> by his own account only 4–5 of ~20 trading days a month are genuinely good — he sits out the rest;</li>
+          <li><strong>No-trade rules:</strong> stays flat during noisy event weeks (FOMC, CPI) until direction is clear;</li>
+          <li><strong>Risk:</strong> dynamic sizing — large on A+ setups, small or flat when conditions are poor.</li>
+        </ul>
+      </div>
+      <div class="twin-card">
+        <h4>The Entrepreneur Profile</h4>
+        <p>Started with roughly <strong>$20k</strong>; took about two and a half years of losses before finding consistency — the turning point, in his telling, was <strong>journaling every trade and treating trading like a business</strong>.</p>
+        <p>He then productized that habit: <strong>TradeZella</strong> is a real, bootstrapped SaaS company (reported valuations around $100M are claims, not audited figures). An earlier venture, the ~$3,000 <strong>Stock Market Lab</strong> course, is now effectively defunct.</p>
+        <p><strong>His own caveat is worth quoting in spirit:</strong> he has said P/L alone is a poor metric — capital and risk are relative, and trading is not his only income, so he trades without the pressure to produce every month. That last sentence quietly explains a great deal.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">The evidence audit — is he a role model?</div>
+    <h3>VERDICT: PROCESS, YES. NUMBERS, UNVERIFIED. INCENTIVES, WATCH THEM.</h3>
+    <p class="lead">Apply the site's own principles to the man himself. A role model is not a person you copy — it is <strong>a dataset you audit</strong>: emulate what is verifiable and transferable, discount what is not.</p>
+    <div class="layers">
+      <div class="layer l-green">
+        <em>Emulate · The process is genuinely excellent</em>
+        His stated operating behaviour is nearly a checklist of this site's principles: <strong>ruthless selectivity, defined session window, event-week no-trade rules, journaling everything, dynamic risk, treating trading as a business.</strong> Whatever his P/L truly is, this process is the correct process — and it is fully transferable.
+      </div>
+      <div class="layer l-yellow">
+        <em>Discount · The headline numbers are not independently audited</em>
+        The "$30M verified" figure rests on screenshots from his own journaling software and live brokerage logins — <strong>not third-party-audited statements</strong>. That doesn't prove the numbers false; it means an engineer assigns them wide error bars. "Verified by my own product" is a weaker claim than the word "verified" implies.
+      </div>
+      <div class="layer l-magenta">
+        <em>Caution · Commercial incentives and survivorship bias</em>
+        He profits when traders trade: a journaling platform, sponsored podcast appearances, a former $3k course with customer refund complaints. And even taking every number at face value, he is <strong>one survivor drawn from a population where the vast majority of day traders lose money</strong>. His existence is not evidence that his path is replicable — that is the definition of survivorship bias.
+      </div>
+      <div class="layer l-blue">
+        <em>Credit · What separates him from the worst of the genre</em>
+        He trades liquid large-caps rather than pumping illiquid tickers to followers, is publicly open about losses, built a real software company, and openly calls P/L a misleading metric. On the educator spectrum, that places him well above the pump-and-dump end — <strong>a flawed but substantive figure, not a fraud archetype</strong>.
+      </div>
+    </div>
+    <div class="quote">
+      So: is he a role model? <strong>His process is. His discipline is. His unaudited P/L is not a target, and his business model is not your friend.</strong> Admire the engineering; ignore the scoreboard.
+    </div>
+  </section>
+
+  <section class="twin-section">
+    <div class="twin-kicker">"How do I grow to his level?" — the honest decomposition</div>
+    <h3>REVERSE-ENGINEERING THE LEVEL</h3>
+    <p class="lead">"His level" is actually <strong>two different achievements</strong>, and they have very different base rates. Separate them before choosing which to chase.</p>
+    <div class="twin-grid">
+      <div class="twin-card">
+        <h4>Path A — The Trader (low base rate)</h4>
+        <p>Elite discretionary trading: ~2.5 years of documented losses before consistency, then a decade of compounding skill, capital and — critically — <strong>removal of income pressure</strong> via other businesses. Research on large trader populations shows the overwhelming majority lose money, and results worsen the longer most people day trade.</p>
+        <p><strong>If you walk this path anyway,</strong> the sequence is non-negotiable: paper-verified edge → 100-trade sample at minimum size → fixed risk → the six V-codes at zero → only then scale. Expect years, and expect the honest possible answer to be "no edge exists."</p>
+      </div>
+      <div class="twin-card">
+        <h4>Path B — The Builder (his most verifiable asset)</h4>
+        <p>Here is the quiet irony: the most <strong>verifiable, durable, audited-by-reality</strong> asset Umar owns is not a P/L screenshot — it is <strong>TradeZella, software for traders</strong>. A real company, real revenue, real users.</p>
+        <p>That is precisely this site's manifesto: <strong>the reliably compounding path is building the systems traders rely upon.</strong> He journaled his own trades, noticed the tooling gap, and productized it. That move — spot the gap in your own workflow, engineer the solution, sell it to everyone with the same problem — is fully replicable and does not require beating the market.</p>
+      </div>
+    </div>
+
+    <div class="steps" style="grid-template-columns:repeat(5,1fr);">
+      <div class="step"><b>STAGE 1</b><strong>Adopt his process today</strong> — journal, session window, no-trade rules, fixed risk. Free, transferable, proven.</div>
+      <div class="step"><b>STAGE 2</b><strong>Run the 100-trade experiment</strong> at minimum size. Let the expectancy math — not a guru — tell you if an edge exists.</div>
+      <div class="step"><b>STAGE 3</b><strong>Build the knowledge stack</strong> — the mathematics, CS and finance pillars from the roadmap. This compounds regardless of the experiment's result.</div>
+      <div class="step warn"><b>STAGE 4</b><strong>Fork on evidence:</strong> positive expectancy → scale slowly like a fund would. No edge → you lost nothing; you built skills.</div>
+      <div class="step"><b>STAGE 5</b><strong>Do what he actually did:</strong> find the gap in your own workflow and build the system — your AI Examiner is exactly this move.</div>
+    </div>
+
+    <div class="quote">
+      The uncomfortable, liberating conclusion: you don't need his P/L to reach his level. <strong>His level, stripped of the unverifiable parts, is a disciplined process plus a software company built on that process.</strong> Both of those are engineering problems — and engineering problems are solvable.
+    </div>
+  </section>
+</section>
+
+<!-- ============ 06 MANIFESTO ============ -->
+<section class="tab-panel" id="panel-manifesto" role="tabpanel">
+  <section class="twin-section manifesto">
+    <div class="twin-kicker">The closing argument</div>
+    <h3>THE ENGINEER'S MANIFESTO</h3>
+    <p class="lead">Do not aspire merely to become a successful trader. Aspire to become <strong>the engineer who builds the systems</strong> that successful traders, portfolio managers, exchanges and quantitative funds rely upon.</p>
+
+    <div class="line"><strong>Learn enough trading</strong> to understand markets.</div>
+    <div class="line alt"><strong>Learn enough mathematics</strong> to model them.</div>
+    <div class="line"><strong>Learn enough computer science</strong> to simulate them.</div>
+    <div class="line alt"><strong>Learn enough AI</strong> to improve them.</div>
+
+    <div class="creed">
+      <div>ENGINEER SYSTEMS.</div>
+      <div>MEASURE EVERYTHING.</div>
+      <div>TRUST EVIDENCE OVER INTUITION.</div>
+      <div>OPTIMIZE PROCESS BEFORE OUTCOME.</div>
+    </div>
+  </section>
+</section>
+
+<div class="footnote">QUANT COMMAND CONSOLE · PROCESS OVER PREDICTION · BUILT FOR ENGINEERS, NOT GAMBLERS</div>
+</div>
+
+<script>
+/* ===== TABS ===== */
+const tabs=document.querySelectorAll('.tab');
+const panels=document.querySelectorAll('.tab-panel');
+function activate(id, push=true){
+  tabs.forEach(t=>{
+    const on=t.dataset.tab===id;
+    t.classList.toggle('active',on);
+    t.setAttribute('aria-selected',on?'true':'false');
+  });
+  panels.forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+  if(push) history.replaceState(null,'','#'+id);
+  window.scrollTo({top:0,behavior:'auto'});
+}
+tabs.forEach(t=>t.addEventListener('click',()=>activate(t.dataset.tab)));
+const initial=(location.hash||'').replace('#','');
+if(['philosophy','roadmap','examiner','lab','casestudy','manifesto'].includes(initial)) activate(initial,false);
+
+/* ===== ROADMAP LADDER ===== */
+document.querySelectorAll('.rung').forEach(r=>{
+  const toggle=()=>r.classList.toggle('open');
+  r.addEventListener('click',toggle);
+  r.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); toggle();} });
+});
+
+/* ===== QUANT LAB ===== */
+const wr=document.getElementById('wr'), aw=document.getElementById('aw'), al=document.getElementById('al'), rr=document.getElementById('rr');
+const wrOut=document.getElementById('wrOut'), awOut=document.getElementById('awOut'), alOut=document.getElementById('alOut'), rrOut=document.getElementById('rrOut');
+const expBig=document.getElementById('expBig'), expNote=document.getElementById('expNote');
+const ruinBig=document.getElementById('ruinBig'), bars=document.getElementById('bars');
+
+function expectancy(){
+  const w=wr.value/100, W=aw.value/10, L=al.value/10;
+  return (w*W)-((1-w)*L);
+}
+function updateExpectancy(){
+  const e=expectancy();
+  wrOut.textContent=wr.value+'%';
+  awOut.textContent=(aw.value/10).toFixed(1)+'R';
+  alOut.textContent=(al.value/10).toFixed(1)+'R';
+  expBig.textContent=(e>=0?'+':'')+e.toFixed(2)+'R per trade';
+  expBig.className='big '+(e>=0?'pos':'neg');
+  expNote.innerHTML = e>=0
+    ? 'Positive expectancy. Over a disciplined 100-trade sample this system expects roughly <strong>'+(e*100).toFixed(0)+'R</strong> — provided the rules are actually followed.'
+    : 'Negative expectancy. <strong>No amount of discipline or psychology rescues this system.</strong> The edge must be fixed first.';
+}
+function simulate(){
+  const e=expectancy();
+  const w=wr.value/100, W=aw.value/10, L=al.value/10, risk=rr.value/100;
+  let eq=1; const path=[];
+  for(let i=0;i<100;i++){
+    if(eq<=0.01){ path.push(0); continue; }
+    const win=Math.random()<w;
+    eq = win ? eq*(1+risk*W) : eq*(1-risk*L);
+    path.push(Math.max(eq,0));
+  }
+  const max=Math.max(1,...path);
+  bars.innerHTML=path.map((v,i)=>{
+    const prev=i===0?1:path[i-1];
+    return '<span class="'+(v<prev?'loss':'')+'" style="height:'+Math.max(2,(v/max)*100)+'%"></span>';
+  }).join('');
+  const final=path[path.length-1];
+  rrOut.textContent=(rr.value/10).toFixed(1)+'%';
+  ruinBig.textContent=(final<=0.01)?'RUINED':((final-1)>=0?'+':'')+((final-1)*100).toFixed(0)+'%';
+  ruinBig.className='big '+((final<=0.01)?'neg':(final>=1?'pos':'neg'));
+}
+[wr,aw,al].forEach(el=>el.addEventListener('input',()=>{updateExpectancy(); simulate();}));
+rr.addEventListener('input',simulate);
+updateExpectancy(); simulate();
+</script>
+</body>
+</html>
